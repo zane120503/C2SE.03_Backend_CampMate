@@ -1,0 +1,30 @@
+{
+  "name": "c2se.03_backend_campmate",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon app.js",
+    "dev": "nodemon app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zane120503/C2SE.03_Backend_CampMate.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zane120503/C2SE.03_Backend_CampMate/issues"
+  },
+  "homepage": "https://github.com/zane120503/C2SE.03_Backend_CampMate#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mongoose": "^8.10.1",
+    "nodemon": "^3.1.9"
+  }
+}
