@@ -5,6 +5,7 @@ const port = process.env.PORT;
 const localhost = process.env.HOST;
 const authRouter = require('./src/routes/authRoutes');
 const userRouter = require('./src/routes/userRoutes');
+const productRouter = require('./src/routes/productRoutes');
 const app = express();
 const cookieParser = require('cookie-parser');
 const connectDB = require('./src/Config/connectdb');
@@ -22,6 +23,7 @@ connectDB();
 // Routes
 app.use(authRouter);
 app.use(userRouter);
+app.use(productRouter);
 
 app.listen(port, localhost, () => {
     console.log(`Server listening at http://${localhost}:${port}`);
