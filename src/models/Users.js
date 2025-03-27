@@ -18,6 +18,27 @@ const userSchema = mongoose.Schema({
       required: true,
       minlength: 4,
     },
+    first_name: {
+      type: String,
+      required: false,
+      minlength: 2,
+      maxlength: 50
+    },
+    last_name: {
+      type: String,
+      required: false,
+      minlength: 2,
+      maxlength: 50
+    },
+    phone_number: {
+      type: String,
+      required: false,
+      match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit phone number']
+    },
+    profileImage: {
+      type: String,
+      default: null
+    },
     verifyOtp: {
       type: String,
       default: ''
@@ -38,35 +59,14 @@ const userSchema = mongoose.Schema({
       type: String,
       default: 0,
     },
-    // first_name: {
-    //   type: String,
-    //   required: true,
-    //   minlength: 2,
-    //   maxlength: 50
-    // },
-    // last_name: {
-    //   type: String,
-    //   required: true,
-    //   minlength: 2,
-    //   maxlength: 50
-    // },
-    // phone_number: String,
-    // profileImage: {  // New field for profile image
-    //   type: String,
-    //   default: null // Default to null if not set
-    // },
-    // addresses: {
-    //   type: [String],  // Array of strings
-    //   default: []  // Default is an empty array
-    // },
-    // isBlocked: {
-    //   type: Boolean,
-    //   default: false
-    // },
-// }, { 
-//     timestamps: true,
-//     toJSON: { virtuals: true },
-//     toObject: { virtuals: true }
+    isProfileCompleted: {
+      type: Boolean,
+      default: false
+    }
+}, { 
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
 });
 
 module.exports = mongoose.model('Users', userSchema);
