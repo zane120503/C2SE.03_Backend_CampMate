@@ -3,7 +3,7 @@ const Review = require("../models/Review");
 const cloudinary = require("../Config/cloudinary");
 const cartService = require("../services/cartService");
 const ProductWishlist = require("../models/ProductWishlist");
-const Product = require("../models/Product");
+const Product = require("../models/Products");
 
 const userController = {
     getUserData: async (req, res) => {
@@ -210,6 +210,33 @@ const userController = {
         }
     },
 
+    removeMultipleItems: async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const { productIds } = req.body;
+
+            if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Product IDs array is required"
+                });
+            }
+
+            const cart = await cartService.removeMultipleItems(userId, productIds);
+            res.status(200).json({
+                success: true,
+                message: "Items removed from cart successfully",
+                data: cart
+            });
+        } catch (error) {
+            console.error("Remove multiple items error:", error);
+            res.status(500).json({
+                success: false,
+                message: error.message || "Internal server error"
+            });
+        }
+    },
+
     clearCart: async (req, res) => {
         try {
             const userId = req.user.id;
@@ -357,36 +384,39 @@ const userController = {
     getProductReviews: async (req, res) => {
         try {
             const { productId } = req.params;
-            const { page = 1, limit = 10 } = req.query;
 
             const reviews = await Review.find({ product_id: productId })
-                .populate('user_id', 'user_name email')
                 .select('rating comment images created_at user_id')
-                .sort({ created_at: -1 })
-                .skip((page - 1) * limit)
-                .limit(parseInt(limit));
+                .sort({ created_at: -1 });
 
-            const totalReviews = await Review.countDocuments({ product_id: productId });
-
-            const formattedReviews = reviews.map(review => ({
-                _id: review._id,
-                user_name: review.user_id.user_name,
-                rating: review.rating,
-                comment: review.comment,
-                images: review.images,
-                created_at: review.created_at,
-                user_id: review.user_id._id
+            // Get user information for each review
+            const reviewsWithUserInfo = await Promise.all(reviews.map(async (review) => {
+                const user = await Users.findById(review.user_id);
+                return {
+                    _id: review._id,
+                    user_name: user ? user.user_name : 'Unknown User',
+                    user_image: user ? user.profileImage : null,
+                    rating: review.rating,
+                    comment: review.comment,
+                    images: review.images,
+                    created_at: review.created_at,
+                    user_id: review.user_id
+                };
             }));
+
+            // Tính toán tổng số review và rating trung bình
+            const totalReviews = reviewsWithUserInfo.length;
+            const averageRating = totalReviews > 0 
+                ? reviewsWithUserInfo.reduce((acc, review) => acc + review.rating, 0) / totalReviews 
+                : 0;
 
             res.json({
                 success: true,
                 data: {
-                    reviews: formattedReviews,
-                    pagination: {
-                        total: totalReviews,
-                        currentPage: parseInt(page),
-                        totalPages: Math.ceil(totalReviews / limit),
-                        limit: parseInt(limit)
+                    reviews: reviewsWithUserInfo,
+                    summary: {
+                        totalReviews,
+                        averageRating: Number(averageRating.toFixed(1))
                     }
                 }
             });
@@ -401,7 +431,7 @@ const userController = {
     createReview: async (req, res) => {
         try {
             const userId = req.user.id;
-            const { productId, rating, comment, images } = req.body;
+            const { productId, rating, comment } = req.body;
 
             // Validate required fields
             if (!productId || !rating || !comment) {
@@ -419,24 +449,51 @@ const userController = {
                 });
             }
 
+            // Check if user has already reviewed this product
+            const existingReview = await Review.findOne({
+                product_id: productId,
+                user_id: userId
+            });
+
+            if (existingReview) {
+                return res.status(400).json({
+                    success: false,
+                    message: "You have already reviewed this product"
+                });
+            }
+
+            // Handle image uploads
+            let images = [];
+            if (req.files && req.files.length > 0) {
+                images = req.files.map(file => file.path);
+            }
+
             const newReview = new Review({
                 product_id: productId,
                 user_id: userId,
                 rating: rating,
                 comment: comment,
-                images: images || []
+                images: images
             });
 
             await newReview.save();
 
-            // Populate user information in the response
-            const populatedReview = await Review.findById(newReview._id)
-                .populate('user_id', 'user_name email');
+            // Get user information for the response
+            const user = await Users.findById(userId);
 
             res.status(201).json({
                 success: true,
                 message: "Review created successfully",
-                data: populatedReview
+                data: {
+                    _id: newReview._id,
+                    user_name: user ? user.user_name : 'Unknown User',
+                    user_image: user ? user.profileImage : null,
+                    rating: newReview.rating,
+                    comment: newReview.comment,
+                    images: newReview.images,
+                    created_at: newReview.created_at,
+                    user_id: newReview.user_id
+                }
             });
 
         } catch (error) {

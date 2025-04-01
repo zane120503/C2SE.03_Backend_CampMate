@@ -2,14 +2,14 @@ const mongoose = require('mongoose');
 
 const reviewSchema = new mongoose.Schema({
     product_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product',
-        required: true
+        type: String,
+        required: true,
+        trim: true
     },
     user_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+        type: String,
+        required: true,
+        trim: true
     },
     rating: {
         type: Number,
@@ -19,7 +19,8 @@ const reviewSchema = new mongoose.Schema({
     },
     comment: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
     images: {
         type: [String],

@@ -18,13 +18,28 @@ const productSchema = new mongoose.Schema({
         required: true,
     },
     categoryID: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Category', 
+        type: String,
         required: true,
+        trim: true
     },
     imageURL: {
         type: String,
         required: true,
+    },
+    brand: {
+        type: String,
+        trim: true
+    },
+    sold: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    discount: {
+        type: Number,
+        min: 0,
+        max: 100,
+        default: 0
     },
     createdAt: {
         type: Date,

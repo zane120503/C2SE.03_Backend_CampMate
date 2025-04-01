@@ -2,13 +2,23 @@ const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const cloudinary = require('../Config/cloudinary');
 
-// Configure multer storage with Cloudinary
-const storage = new CloudinaryStorage({
+// Configure multer storage with Cloudinary for profile images
+const profileStorage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
         folder: 'UserImageProfileCampGo',
         allowed_formats: ['jpg', 'jpeg', 'png'],
         transformation: [{ width: 150, height: 150, crop: "fill" }]
+    }
+});
+
+// Configure multer storage with Cloudinary for review images
+const reviewStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'reviewProductCampGo',
+        allowed_formats: ['jpg', 'jpeg', 'png'],
+        transformation: [{ width: 800, height: 800, crop: "limit" }]
     }
 });
 
@@ -21,12 +31,20 @@ const fileFilter = (req, file, cb) => {
     }
 };
 
-const upload = multer({
-    storage: storage,
+const uploadProfile = multer({
+    storage: profileStorage,
     fileFilter: fileFilter,
     limits: {
         fileSize: 5 * 1024 * 1024 // 5MB limit
     }
 });
 
-module.exports = upload; 
+const uploadReview = multer({
+    storage: reviewStorage,
+    fileFilter: fileFilter,
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB limit
+    }
+});
+
+module.exports = { uploadProfile, uploadReview }; 

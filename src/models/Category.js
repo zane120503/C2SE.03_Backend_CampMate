@@ -9,6 +9,10 @@ const categorySchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    imageURL: {
+        type: String,
+        required: true,
+    },
 });
 
 module.exports = mongoose.model('Category', categorySchema);
