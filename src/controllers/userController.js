@@ -4,13 +4,17 @@ const cloudinary = require("../Config/cloudinary");
 const cartService = require("../services/cartService");
 const ProductWishlist = require("../models/ProductWishlist");
 const Product = require("../models/Products");
+const Address = require("../models/Address");
 
 const userController = {
     getUserData: async (req, res) => {
         try {
             const userId = req.user.id;
 
-            const user = await Users.findById(userId);
+            const [user, defaultAddress] = await Promise.all([
+                Users.findById(userId),
+                Address.findOne({ user_id: userId, isDefault: true })
+            ]);
 
             if (!user) {
                 return res.status(404).json({ message: "User not found" });
@@ -26,8 +30,10 @@ const userController = {
                     first_name: user.first_name,
                     last_name: user.last_name,
                     phone_number: user.phone_number,
+                    gender: user.gender,
                     profileImage: user.profileImage,
-                    isProfileCompleted: user.isProfileCompleted
+                    isProfileCompleted: user.isProfileCompleted,
+                    defaultAddress: defaultAddress || null
                 }
             });
         } catch (error) {
@@ -38,7 +44,12 @@ const userController = {
     updateProfile: async (req, res) => {
         try {
             const userId = req.user.id;
-            const { first_name, last_name, phone_number } = req.body;
+            const { 
+                first_name, 
+                last_name, 
+                phone_number,
+                gender
+            } = req.body;
 
             // Validate required fields
             if (!first_name || !last_name || !phone_number) {
@@ -56,6 +67,14 @@ const userController = {
                 });
             }
 
+            // Validate gender if provided
+            if (gender && !['male', 'female', 'other'].includes(gender)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid gender value. Must be 'male', 'female', or 'other'"
+                });
+            }
+
             const user = await Users.findById(userId);
             if (!user) {
                 return res.status(404).json({
@@ -68,6 +87,7 @@ const userController = {
             user.first_name = first_name;
             user.last_name = last_name;
             user.phone_number = phone_number;
+            user.gender = gender || user.gender;
             
             // If new image was uploaded, update profileImage
             if (req.file) {
@@ -88,6 +108,7 @@ const userController = {
                     first_name: user.first_name,
                     last_name: user.last_name,
                     phone_number: user.phone_number,
+                    gender: user.gender,
                     profileImage: user.profileImage,
                     isProfileCompleted: user.isProfileCompleted
                 }
@@ -500,6 +521,311 @@ const userController = {
             res.status(500).json({
                 success: false,
                 message: error.message
+            });
+        }
+    },
+
+    searchProducts: async (req, res) => {
+        try {
+            const {
+                keyword,
+                categoryId,
+                minPrice,
+                maxPrice,
+                sortBy = 'createdAt',
+                sortOrder = 'desc',
+                page = 1,
+                limit = 10
+            } = req.query;
+
+            // Xây dựng query
+            const query = {};
+
+            // Tìm kiếm theo từ khóa
+            if (keyword) {
+                query.productName = { $regex: keyword, $options: 'i' };
+            }
+
+            // Lọc theo danh mục
+            if (categoryId) {
+                query.categoryID = categoryId;
+            }
+
+            // Lọc theo giá
+            if (minPrice || maxPrice) {
+                query.price = {};
+                if (minPrice) query.price.$gte = Number(minPrice);
+                if (maxPrice) query.price.$lte = Number(maxPrice);
+            }
+
+            // Xác định thứ tự sắp xếp
+            const sortOptions = {};
+            sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+            // Tính toán skip cho phân trang
+            const skip = (Number(page) - 1) * Number(limit);
+
+            // Thực hiện query với phân trang
+            const [products, total] = await Promise.all([
+                Product.find(query)
+                    .sort(sortOptions)
+                    .skip(skip)
+                    .limit(Number(limit)),
+                Product.countDocuments(query)
+            ]);
+
+            // Tính toán tổng số trang
+            const totalPages = Math.ceil(total / Number(limit));
+
+            res.status(200).json({
+                success: true,
+                data: {
+                    products,
+                    pagination: {
+                        currentPage: Number(page),
+                        totalPages,
+                        totalProducts: total,
+                        productsPerPage: Number(limit)
+                    }
+                }
+            });
+
+        } catch (error) {
+            console.error("Search products error:", error);
+            res.status(500).json({
+                success: false,
+                message: error.message || "Internal server error"
+            });
+        }
+    },
+
+    // Address Controllers
+    addAddress: async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const {
+                street,
+                city,
+                state,
+                country,
+                zipCode,
+                fullName,
+                phoneNumber,
+                isDefault
+            } = req.body;
+
+            // Validate required fields
+            if (!street || !city || !state || !country || !zipCode || !fullName || !phoneNumber) {
+                return res.status(400).json({
+                    success: false,
+                    message: "All fields are required"
+                });
+            }
+
+            // Validate phone number format
+            if (!/^[0-9]{10}$/.test(phoneNumber)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Please enter a valid 10-digit phone number"
+                });
+            }
+
+            // If this is the first address or isDefault is true, handle default address
+            if (isDefault) {
+                await Address.updateMany(
+                    { user_id: userId },
+                    { isDefault: false }
+                );
+            }
+
+            const newAddress = new Address({
+                user_id: userId,
+                street,
+                city,
+                state,
+                country,
+                zipCode,
+                fullName,
+                phoneNumber,
+                isDefault: isDefault || false
+            });
+
+            await newAddress.save();
+
+            res.status(201).json({
+                success: true,
+                message: "Address added successfully",
+                data: newAddress
+            });
+
+        } catch (error) {
+            console.error("Add address error:", error);
+            res.status(500).json({
+                success: false,
+                message: error.message || "Internal server error"
+            });
+        }
+    },
+
+    getAddresses: async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const addresses = await Address.find({ user_id: userId });
+
+            res.status(200).json({
+                success: true,
+                data: addresses
+            });
+
+        } catch (error) {
+            console.error("Get addresses error:", error);
+            res.status(500).json({
+                success: false,
+                message: error.message || "Internal server error"
+            });
+        }
+    },
+
+    updateAddress: async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const { addressId } = req.params;
+            const {
+                street,
+                city,
+                state,
+                country,
+                zipCode,
+                fullName,
+                phoneNumber,
+                isDefault
+            } = req.body;
+
+            // Validate required fields
+            if (!street || !city || !state || !country || !zipCode || !fullName || !phoneNumber) {
+                return res.status(400).json({
+                    success: false,
+                    message: "All fields are required"
+                });
+            }
+
+            // Validate phone number format
+            if (!/^[0-9]{10}$/.test(phoneNumber)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Please enter a valid 10-digit phone number"
+                });
+            }
+
+            // Check if address exists and belongs to user
+            const address = await Address.findOne({ _id: addressId, user_id: userId });
+            if (!address) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Address not found"
+                });
+            }
+
+            // If setting as default, update other addresses
+            if (isDefault) {
+                await Address.updateMany(
+                    { user_id: userId, _id: { $ne: addressId } },
+                    { isDefault: false }
+                );
+            }
+
+            // Update address
+            address.street = street;
+            address.city = city;
+            address.state = state;
+            address.country = country;
+            address.zipCode = zipCode;
+            address.fullName = fullName;
+            address.phoneNumber = phoneNumber;
+            address.isDefault = isDefault || address.isDefault;
+
+            await address.save();
+
+            res.status(200).json({
+                success: true,
+                message: "Address updated successfully",
+                data: address
+            });
+
+        } catch (error) {
+            console.error("Update address error:", error);
+            res.status(500).json({
+                success: false,
+                message: error.message || "Internal server error"
+            });
+        }
+    },
+
+    deleteAddress: async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const { addressId } = req.params;
+
+            // Check if address exists and belongs to user
+            const address = await Address.findOne({ _id: addressId, user_id: userId });
+            if (!address) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Address not found"
+                });
+            }
+
+            await address.deleteOne();
+
+            res.status(200).json({
+                success: true,
+                message: "Address deleted successfully"
+            });
+
+        } catch (error) {
+            console.error("Delete address error:", error);
+            res.status(500).json({
+                success: false,
+                message: error.message || "Internal server error"
+            });
+        }
+    },
+
+    setDefaultAddress: async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const { addressId } = req.params;
+
+            // Check if address exists and belongs to user
+            const address = await Address.findOne({ _id: addressId, user_id: userId });
+            if (!address) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Address not found"
+                });
+            }
+
+            // Update all addresses to set isDefault to false
+            await Address.updateMany(
+                { user_id: userId },
+                { isDefault: false }
+            );
+
+            // Set the selected address as default
+            address.isDefault = true;
+            await address.save();
+
+            res.status(200).json({
+                success: true,
+                message: "Default address updated successfully",
+                data: address
+            });
+
+        } catch (error) {
+            console.error("Set default address error:", error);
+            res.status(500).json({
+                success: false,
+                message: error.message || "Internal server error"
             });
         }
     },

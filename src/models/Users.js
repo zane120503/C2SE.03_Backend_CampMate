@@ -35,6 +35,11 @@ const userSchema = mongoose.Schema({
       required: false,
       match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit phone number']
     },
+    gender: {
+      type: String,
+      enum: ['male', 'female', 'other'],
+      required: false
+    },
     profileImage: {
       type: String,
       default: null

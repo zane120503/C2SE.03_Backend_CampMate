@@ -8,6 +8,14 @@ userRouter.get('/api/data-users',  userAuth, userController.getUserData);
 userRouter.get('/api/products/:productId/reviews', userController.getProductReviews);
 userRouter.post('/api/products/reviews', userAuth, uploadReview.array('images', 5), userController.createReview);
 userRouter.put('/api/update-profile', userAuth, uploadProfile.single('profileImage'), userController.updateProfile);
+userRouter.get('/api/products/search', userController.searchProducts);
+
+// Address routes
+userRouter.post('/api/addresses', userAuth, userController.addAddress);
+userRouter.get('/api/AllAddresses', userAuth, userController.getAddresses);
+userRouter.put('/api/addresses/:addressId', userAuth, userController.updateAddress);
+userRouter.delete('/api/addresses/:addressId', userAuth, userController.deleteAddress);
+userRouter.put('/api/addresses/:addressId/set-default', userAuth, userController.setDefaultAddress);
 
 // Cart routes
 userRouter.post('/api/cart/add', userAuth, userController.addToCart);
