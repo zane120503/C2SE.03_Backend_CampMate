@@ -5,6 +5,8 @@ const cartService = require("../services/cartService");
 const ProductWishlist = require("../models/ProductWishlist");
 const Product = require("../models/Products");
 const Address = require("../models/Address");
+const cardService = require("../services/cardService");
+const orderService = require("../services/orderService");
 
 const userController = {
     getUserData: async (req, res) => {
@@ -348,9 +350,30 @@ const userController = {
                 });
             }
 
+            // Transform products to include discount information
+            const productsWithDiscount = wishlist.products.map(product => {
+                const productData = product.toObject();
+                const originalPrice = product.price;
+                const discountPercentage = product.discount || 0;
+                const discountPrice = discountPercentage > 0 
+                    ? originalPrice * (1 - discountPercentage / 100)
+                    : null;
+
+                return {
+                    ...productData,
+                    original_price: originalPrice,
+                    discount_price: discountPrice,
+                    discount_percentage: discountPercentage,
+                    final_price: discountPrice || originalPrice
+                };
+            });
+
             res.status(200).json({
                 success: true,
-                data: wishlist
+                data: {
+                    ...wishlist.toObject(),
+                    products: productsWithDiscount
+                }
             });
         } catch (error) {
             console.error("Get wishlist error:", error);
@@ -829,6 +852,99 @@ const userController = {
             });
         }
     },
+
+    addCard: async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const cardData = {
+                ...req.body,
+                user_id: userId
+            };
+
+            const card = await cardService.addCard(cardData);
+            res.status(201).json({
+                success: true,
+                data: card
+            });
+        } catch (error) {
+            console.error("Add card error:", error);
+            res.status(500).json({
+                success: false,
+                message: error.message || "Internal server error"
+            });
+        }
+    },
+
+    getAllCards: async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const cards = await cardService.getAllCards(userId);
+            res.status(200).json({
+                success: true,
+                data: cards
+            });
+        } catch (error) {
+            console.error("Get all cards error:", error);
+            res.status(500).json({
+                success: false,
+                message: error.message || "Internal server error"
+            });
+        }
+    },
+
+    updateCard: async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const { id } = req.params;
+            const card = await cardService.updateCard(userId, id, req.body);
+            res.status(200).json({
+                success: true,
+                data: card
+            });
+        } catch (error) {
+            console.error("Update card error:", error);
+            res.status(500).json({
+                success: false,
+                message: error.message || "Internal server error"
+            });
+        }
+    },
+
+    deleteCard: async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const { id } = req.params;
+            const card = await cardService.deleteCard(userId, id);
+            res.status(200).json({
+                success: true,
+                data: card
+            });
+        } catch (error) {
+            console.error("Delete card error:", error);
+            res.status(500).json({
+                success: false,
+                message: error.message || "Internal server error"
+            });
+        }
+    },
+
+    setDefaultCard: async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const { id } = req.params;
+            const card = await cardService.setDefaultCard(userId, id);
+            res.status(200).json({
+                success: true,
+                data: card
+            });
+        } catch (error) {
+            console.error("Set default card error:", error);
+            res.status(500).json({
+                success: false,
+                message: error.message || "Internal server error"
+            });
+        }
+    }
 };
 
 module.exports = userController;

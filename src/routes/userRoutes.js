@@ -30,4 +30,11 @@ userRouter.post('/api/wishlist/add', userAuth, userController.addToWishlist);
 userRouter.get('/api/wishlist', userAuth, userController.getWishlist);
 userRouter.delete('/api/wishlist/:productId', userAuth, userController.removeFromWishlist);
 
+// Card routes
+userRouter.post('/api/AddCards', userAuth, userController.addCard);
+userRouter.get('/api/AllCards', userAuth, userController.getAllCards);
+userRouter.put('/api/UpdateCards/:id', userAuth, userController.updateCard);
+userRouter.delete('/api/DeleteCards/:id', userAuth, userController.deleteCard);
+userRouter.put('/api/cards/:id/set-default', userAuth, userController.setDefaultCard);
+
 module.exports = userRouter;
