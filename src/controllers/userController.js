@@ -600,10 +600,28 @@ const userController = {
             // Tính toán tổng số trang
             const totalPages = Math.ceil(total / Number(limit));
 
+            // Transform products to include discount information
+            const productsWithDiscount = products.map(product => {
+                const productData = product.toObject();
+                const originalPrice = product.price;
+                const discountPercentage = product.discount || 0;
+                const discountPrice = discountPercentage > 0 
+                    ? originalPrice * (1 - discountPercentage / 100)
+                    : null;
+
+                return {
+                    ...productData,
+                    original_price: originalPrice,
+                    discount_price: discountPrice,
+                    discount_percentage: discountPercentage,
+                    final_price: discountPrice || originalPrice
+                };
+            });
+
             res.status(200).json({
                 success: true,
                 data: {
-                    products,
+                    products: productsWithDiscount,
                     pagination: {
                         currentPage: Number(page),
                         totalPages,
@@ -628,9 +646,9 @@ const userController = {
             const userId = req.user.id;
             const {
                 street,
+                ward,
+                district,
                 city,
-                state,
-                country,
                 zipCode,
                 fullName,
                 phoneNumber,
@@ -638,7 +656,7 @@ const userController = {
             } = req.body;
 
             // Validate required fields
-            if (!street || !city || !state || !country || !zipCode || !fullName || !phoneNumber) {
+            if (!street || !ward || !district || !city || !zipCode || !fullName || !phoneNumber) {
                 return res.status(400).json({
                     success: false,
                     message: "All fields are required"
@@ -664,9 +682,9 @@ const userController = {
             const newAddress = new Address({
                 user_id: userId,
                 street,
+                ward,
+                district,
                 city,
-                state,
-                country,
                 zipCode,
                 fullName,
                 phoneNumber,
@@ -715,9 +733,9 @@ const userController = {
             const { addressId } = req.params;
             const {
                 street,
+                ward,
+                district,
                 city,
-                state,
-                country,
                 zipCode,
                 fullName,
                 phoneNumber,
@@ -725,7 +743,7 @@ const userController = {
             } = req.body;
 
             // Validate required fields
-            if (!street || !city || !state || !country || !zipCode || !fullName || !phoneNumber) {
+            if (!street || !ward || !district || !city || !zipCode || !fullName || !phoneNumber) {
                 return res.status(400).json({
                     success: false,
                     message: "All fields are required"
@@ -759,9 +777,9 @@ const userController = {
 
             // Update address
             address.street = street;
+            address.ward = ward;
+            address.district = district;
             address.city = city;
-            address.state = state;
-            address.country = country;
             address.zipCode = zipCode;
             address.fullName = fullName;
             address.phoneNumber = phoneNumber;

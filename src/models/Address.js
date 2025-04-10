@@ -10,17 +10,22 @@ const addressSchema = mongoose.Schema({
         type: String,
         required: true
     },
-    city: {
+    ward: {
         type: String,
         required: true
     },
-    state: {
+    district: {
+        type: String,
+        required: true
+    },
+    city: {
         type: String,
         required: true
     },
     country: {
         type: String,
-        required: true
+        required: true,
+        default: "Vietnam"
     },
     zipCode: {
         type: String,

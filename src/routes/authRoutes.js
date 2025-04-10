@@ -19,4 +19,7 @@ authRoutes.post('/api/auth/verify-reset-otp', authController.verifyResetOTP);
 
 authRoutes.post('/api/auth/reset-password', resetPasswordAuth, authController.resetPassword);
 
+// Change password route (requires authentication)
+authRoutes.put('/api/auth/change-password', userAuth, authController.changePassword);
+
 module.exports = authRoutes;

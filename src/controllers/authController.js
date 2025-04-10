@@ -330,5 +330,91 @@ const authController = {
       res.status(500).json({ success: false, message: "Internal server error" });
     }
   },
+
+  changePassword: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { currentPassword, newPassword, confirmPassword } = req.body;
+
+      // Validate required fields
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        return res.status(400).json({
+          success: false,
+          message: "Please provide all required fields"
+        });
+      }
+
+      // Validate new password and confirm password match
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({
+          success: false,
+          message: "New password and confirm password do not match"
+        });
+      }
+
+      // Validate new password length
+      if (newPassword.length < 6) {
+        return res.status(400).json({
+          success: false,
+          message: "New password must be at least 6 characters long"
+        });
+      }
+
+      // Get user and verify current password
+      const user = await Users.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found"
+        });
+      }
+
+      // Verify current password
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({
+          success: false,
+          message: "Current password is incorrect"
+        });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password
+      user.password = hashedPassword;
+      await user.save();
+
+      // Send email notification
+      try {
+        const mailOptions = {
+          from: `CampGo <${process.env.EMAIL_SENDER}>`,
+          to: user.email,
+          subject: "Password Changed Successfully",
+          html: `
+            <h2>Password Change Notification</h2>
+            <p>Hello ${user.user_name},</p>
+            <p>Your password has been successfully changed.</p>
+            <p>If you did not make this change, please contact our support team immediately.</p>
+          `
+        };
+        await transporter.sendMail(mailOptions);
+      } catch (emailError) {
+        console.error("Failed to send password change notification email:", emailError);
+      }
+
+      return res.json({
+        success: true,
+        message: "Password changed successfully"
+      });
+
+    } catch (error) {
+      console.error("Change password error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error"
+      });
+    }
+  },
 };
 module.exports = authController;
