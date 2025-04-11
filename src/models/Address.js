@@ -25,7 +25,6 @@ const addressSchema = mongoose.Schema({
     country: {
         type: String,
         required: true,
-        default: "Vietnam"
     },
     zipCode: {
         type: String,
