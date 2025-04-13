@@ -24,7 +24,7 @@ const addressSchema = mongoose.Schema({
     },
     country: {
         type: String,
-        required: true,
+        required: true
     },
     zipCode: {
         type: String,

@@ -643,35 +643,27 @@ const userController = {
     // Address Controllers
     addAddress: async (req, res) => {
         try {
+            const { street, ward, district, city, country, zipCode, fullName, phoneNumber, isDefault } = req.body;
             const userId = req.user.id;
-            const {
-                street,
-                ward,
-                district,
-                city,
-                zipCode,
-                fullName,
-                phoneNumber,
-                isDefault
-            } = req.body;
 
             // Validate required fields
-            if (!street || !ward || !district || !city || !zipCode || !fullName || !phoneNumber) {
+            if (!street || !ward || !district || !city || !country || !zipCode || !fullName || !phoneNumber) {
                 return res.status(400).json({
                     success: false,
-                    message: "All fields are required"
+                    message: 'All fields are required'
                 });
             }
 
             // Validate phone number format
-            if (!/^[0-9]{10}$/.test(phoneNumber)) {
+            const phoneRegex = /^[0-9]{10}$/;
+            if (!phoneRegex.test(phoneNumber)) {
                 return res.status(400).json({
                     success: false,
-                    message: "Please enter a valid 10-digit phone number"
+                    message: 'Phone number must be 10 digits'
                 });
             }
 
-            // If this is the first address or isDefault is true, handle default address
+            // If this is the first address or isDefault is true, set all other addresses to non-default
             if (isDefault) {
                 await Address.updateMany(
                     { user_id: userId },
@@ -685,6 +677,7 @@ const userController = {
                 ward,
                 district,
                 city,
+                country,
                 zipCode,
                 fullName,
                 phoneNumber,
@@ -695,15 +688,14 @@ const userController = {
 
             res.status(201).json({
                 success: true,
-                message: "Address added successfully",
+                message: 'Address added successfully',
                 data: newAddress
             });
-
         } catch (error) {
-            console.error("Add address error:", error);
+            console.error('Add address error:', error);
             res.status(500).json({
                 success: false,
-                message: error.message || "Internal server error"
+                message: error.message || 'Failed to add address'
             });
         }
     },
@@ -736,6 +728,7 @@ const userController = {
                 ward,
                 district,
                 city,
+                country,
                 zipCode,
                 fullName,
                 phoneNumber,
@@ -743,7 +736,7 @@ const userController = {
             } = req.body;
 
             // Validate required fields
-            if (!street || !ward || !district || !city || !zipCode || !fullName || !phoneNumber) {
+            if (!street || !ward || !district || !city || !country || !zipCode || !fullName || !phoneNumber) {
                 return res.status(400).json({
                     success: false,
                     message: "All fields are required"
@@ -780,6 +773,7 @@ const userController = {
             address.ward = ward;
             address.district = district;
             address.city = city;
+            address.country = country;
             address.zipCode = zipCode;
             address.fullName = fullName;
             address.phoneNumber = phoneNumber;
