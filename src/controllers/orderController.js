@@ -145,6 +145,46 @@ const orderController = {
         message: error.message || 'Lỗi khi lấy danh sách đơn hàng'
       });
     }
+  },
+
+  // Xác nhận đơn hàng đã giao
+  confirmDelivery: async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      const updatedOrder = await orderService.confirmDelivery(orderId);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Xác nhận giao hàng thành công',
+        data: updatedOrder
+      });
+    } catch (error) {
+      console.error('Lỗi khi xác nhận giao hàng:', error);
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Lỗi khi xác nhận giao hàng'
+      });
+    }
+  },
+
+  // Xử lý trả hàng/hoàn tiền
+  returnOrder: async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      const updatedOrder = await orderService.returnOrder(orderId);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Xử lý trả hàng thành công',
+        data: updatedOrder
+      });
+    } catch (error) {
+      console.error('Lỗi khi xử lý trả hàng:', error);
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Lỗi khi xử lý trả hàng'
+      });
+    }
   }
 };
 

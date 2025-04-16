@@ -293,11 +293,80 @@ const getAllOrders = async (query = {}) => {
   }
 };
 
+// Xác nhận đơn hàng đã giao
+const confirmDelivery = async (orderId) => {
+  try {
+    // Tìm đơn hàng và kiểm tra điều kiện
+    const order = await Order.findById(orderId);
+    if (!order) {
+      throw new Error('Không tìm thấy đơn hàng');
+    }
+
+    // Kiểm tra điều kiện: waiting_confirmation = true và delivery_status = 'Shipping'
+    if (!order.waiting_confirmation || order.delivery_status !== 'Shipping') {
+      throw new Error('Đơn hàng không đủ điều kiện để xác nhận giao hàng');
+    }
+
+    // Cập nhật trạng thái đơn hàng
+    const updatedOrder = await Order.findByIdAndUpdate(
+      orderId,
+      {
+        payment_status: 'Completed',
+        delivery_status: 'Delivered'
+      },
+      { new: true }
+    ).populate('products.product')
+     .populate('shipping_address')
+     .populate('user_id', 'name email');
+
+    return updatedOrder;
+  } catch (error) {
+    throw new Error(error.message || 'Lỗi khi xác nhận giao hàng');
+  }
+};
+
+// Xử lý trả hàng/hoàn tiền
+const returnOrder = async (orderId) => {
+  try {
+    // Tìm đơn hàng và kiểm tra điều kiện
+    const order = await Order.findById(orderId);
+    if (!order) {
+      throw new Error('Không tìm thấy đơn hàng');
+    }
+
+    // Kiểm tra điều kiện: đơn hàng phải ở trạng thái Shipping
+    if (order.delivery_status !== 'Shipping') {
+      throw new Error('Chỉ có thể trả hàng khi đơn hàng đang trong quá trình giao hàng');
+    }
+
+    // Xác định trạng thái thanh toán dựa trên phương thức thanh toán
+    const paymentStatus = order.payment_method === 'Credit Card' ? 'Refunded' : 'Failed';
+
+    // Cập nhật trạng thái đơn hàng
+    const updatedOrder = await Order.findByIdAndUpdate(
+      orderId,
+      {
+        delivery_status: 'Returned',
+        payment_status: paymentStatus
+      },
+      { new: true }
+    ).populate('products.product')
+     .populate('shipping_address')
+     .populate('user_id', 'name email');
+
+    return updatedOrder;
+  } catch (error) {
+    throw new Error(error.message || 'Lỗi khi xử lý trả hàng');
+  }
+};
+
 module.exports = {
   createOrder,
   updateOrder,
   getOrdersByUserId,
   deleteOrder,
   getOrderById,
-  getAllOrders
+  getAllOrders,
+  confirmDelivery,
+  returnOrder
 };

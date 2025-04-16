@@ -6,6 +6,7 @@ const localhost = process.env.HOST;
 const authRouter = require('./src/routes/authRoutes');
 const userRouter = require('./src/routes/userRoutes');
 const productRouter = require('./src/routes/productRoutes');
+const campsiteRouter = require('./src/routes/campsiteRoutes');
 const orderRouter = require('./src/routes/orderRoutes');
 const app = express();
 const cookieParser = require('cookie-parser');
@@ -26,6 +27,7 @@ app.use(authRouter);
 app.use(userRouter);
 app.use(productRouter);
 app.use(orderRouter);
+app.use(campsiteRouter);
 
 app.listen(port, localhost, () => {
     console.log(`Server listening at http://${localhost}:${port}`);
