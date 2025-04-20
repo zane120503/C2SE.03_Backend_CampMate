@@ -124,7 +124,8 @@ const authController = {
           user_name: user.user_name,
           email: user.email,
           isAccountVerified: user.isAccountVerified,
-          isProfileCompleted: user.isProfileCompleted
+          isProfileCompleted: user.isProfileCompleted,
+          isAdmin: user.isAdmin
         }
       });
     }catch (error) {

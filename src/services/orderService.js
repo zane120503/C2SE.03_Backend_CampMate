@@ -83,7 +83,9 @@ const createOrder = async (params) => {
         return {
           product: productDetail,
           name: productDetail.productName,
-          image: productDetail.imageURL,
+          image: productDetail.images && productDetail.images.length > 0 
+            ? productDetail.images[0].url 
+            : 'https://res.cloudinary.com/.../default-product-image.jpg',
           quantity: cartItem.quantity
         };
       })
@@ -127,17 +129,20 @@ const createOrder = async (params) => {
       delivery_status: 'Pending'
     });
 
-    // Cập nhật số lượng tồn kho
+    // Cập nhật số lượng đã bán
     for (const item of productDetails) {
-      await Product.findByIdAndUpdate(
+      const updatedProduct = await Product.findByIdAndUpdate(
         item.product._id,
         { 
           $inc: { 
-            stockQuantity: -item.quantity,
             sold: item.quantity
           } 
-        }
+        },
+        { new: true }
       );
+      
+      console.log(`Cập nhật sản phẩm ${item.product.productName}:`);
+      console.log(`- Số lượng đã bán mới: ${updatedProduct.sold}`);
     }
 
     // Xóa các sản phẩm đã đặt hàng khỏi giỏ hàng

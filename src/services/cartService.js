@@ -254,6 +254,39 @@ const cartService = {
         } catch (error) {
             throw error;
         }
+    },
+
+    // Get cart by user ID
+    getCartByUserId: async (userId) => {
+        try {
+            const cart = await Cart.findOne({ user_id: userId })
+                .populate('items.product', 'productName price images stockQuantity discount');
+            
+            if (!cart) {
+                // Nếu không tìm thấy giỏ hàng, tạo giỏ hàng mới
+                const newCart = new Cart({
+                    user_id: userId,
+                    items: [],
+                    cartTotal: 0
+                });
+                await newCart.save();
+                return newCart;
+            }
+
+            // Tính lại tổng tiền giỏ hàng
+            cart.cartTotal = cart.items.reduce((total, item) => {
+                const product = item.product;
+                const priceAfterDiscount = product.discount > 0 
+                    ? product.price * (1 - product.discount / 100) 
+                    : product.price;
+                return total + (priceAfterDiscount * item.quantity);
+            }, 0);
+
+            await cart.save();
+            return cart;
+        } catch (error) {
+            throw new Error(error.message || 'Lỗi khi lấy giỏ hàng');
+        }
     }
 };
 

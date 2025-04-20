@@ -41,8 +41,14 @@ const userSchema = mongoose.Schema({
       required: false
     },
     profileImage: {
-      type: String,
-      default: null
+      url: {
+        type: String,
+        default: null
+      },
+      public_id: {
+        type: String,
+        default: null
+      }
     },
     verifyOtp: {
       type: String,
@@ -65,6 +71,14 @@ const userSchema = mongoose.Schema({
       default: 0,
     },
     isProfileCompleted: {
+      type: Boolean,
+      default: false
+    },
+    isAdmin: {
+      type: Boolean,
+      default: false
+    },
+    isBlocked: {
       type: Boolean,
       default: false
     }

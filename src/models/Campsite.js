@@ -3,33 +3,41 @@ const mongoose = require('mongoose');
 const campsiteSchema = new mongoose.Schema({
     campsiteName: {
         type: String,
-        required: true,
-        trim: true
+        required: [true, 'Campsite name is required'],
+        trim: true,
+        unique: true
     },
     location: {
         type: String,
-        required: true,
+        required: [true, 'Location is required'],
         trim: true
     },
     latitude: {
         type: Number,
-        required: true
+        required: [true, 'Latitude is required']
     },
     longitude: {
         type: Number,
-        required: true
+        required: [true, 'Longitude is required']
     },
     description: {
         type: String,
-        required: true,
+        required: [true, 'Description is required'],
         trim: true
     },
-    imageURL: {
-        type: String,
-        required: true
-    },
+    images: [{
+        url: {
+            type: String,
+            required: true
+        },
+        public_id: {
+            type: String,
+            required: true
+        }
+    }],
     facilities: [{
-        type: String
+        type: String,
+        trim: true
     }],
     rating: {
         type: Number,
@@ -44,11 +52,11 @@ const campsiteSchema = new mongoose.Schema({
     priceRange: {
         min: {
             type: Number,
-            required: true
+            required: [true, 'Minimum price is required']
         },
         max: {
             type: Number,
-            required: true
+            required: [true, 'Maximum price is required']
         }
     },
     contactInfo: {
@@ -69,6 +77,18 @@ const campsiteSchema = new mongoose.Schema({
     openingHours: {
         open: String,
         close: String
+    },
+    isActive: {
+        type: Boolean,
+        default: true
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
+    },
+    updatedAt: {
+        type: Date,
+        default: Date.now
     }
 }, {
     timestamps: true

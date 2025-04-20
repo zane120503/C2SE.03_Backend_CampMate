@@ -57,7 +57,7 @@ const userController = {
             if (!first_name || !last_name || !phone_number) {
                 return res.status(400).json({
                     success: false,
-                    message: "Please provide all required fields"
+                    message: "Vui lòng điền đầy đủ thông tin bắt buộc"
                 });
             }
 
@@ -65,7 +65,7 @@ const userController = {
             if (!/^[0-9]{10}$/.test(phone_number)) {
                 return res.status(400).json({
                     success: false,
-                    message: "Please enter a valid 10-digit phone number"
+                    message: "Số điện thoại phải có 10 chữ số"
                 });
             }
 
@@ -73,7 +73,7 @@ const userController = {
             if (gender && !['male', 'female', 'other'].includes(gender)) {
                 return res.status(400).json({
                     success: false,
-                    message: "Invalid gender value. Must be 'male', 'female', or 'other'"
+                    message: "Giới tính không hợp lệ"
                 });
             }
 
@@ -81,7 +81,7 @@ const userController = {
             if (!user) {
                 return res.status(404).json({
                     success: false,
-                    message: "User not found"
+                    message: "Không tìm thấy người dùng"
                 });
             }
 
@@ -93,16 +93,24 @@ const userController = {
             
             // If new image was uploaded, update profileImage
             if (req.file) {
-                user.profileImage = req.file.path;
+                // Nếu có ảnh cũ, xóa ảnh cũ trên Cloudinary
+                if (user.profileImage && user.profileImage.public_id) {
+                    await cloudinary.uploader.destroy(user.profileImage.public_id);
+                }
+                
+                // Cập nhật ảnh mới
+                user.profileImage = {
+                    url: req.file.path,
+                    public_id: req.file.filename
+                };
             }
             
             user.isProfileCompleted = true;
-
             await user.save();
 
             return res.json({
                 success: true,
-                message: "Profile updated successfully",
+                message: "Cập nhật thông tin thành công",
                 userData: {
                     _id: user._id,
                     user_name: user.user_name,
@@ -117,10 +125,10 @@ const userController = {
             });
 
         } catch (error) {
-            console.error("Profile update error:", error);
+            console.error("Lỗi khi cập nhật profile:", error);
             return res.status(500).json({
                 success: false,
-                message: "Internal server error",
+                message: "Lỗi server",
                 error: error.message
             });
         }
