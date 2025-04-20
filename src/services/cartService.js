@@ -74,40 +74,12 @@ const cartService = {
             // Calculate cart total
             cart.cartTotal = cart.items.reduce((sum, item) => sum + item.total, 0);
 
+            // Update product stock
+            product.stockQuantity -= quantity;
+            await product.save();
+
             await cart.save();
             await cart.populate('items.product');
-
-            return cart;
-        } catch (error) {
-            throw error;
-        }
-    },
-
-    // Get cart by user ID
-    getCartByUserId: async (userId) => {
-        try {
-            const cart = await Cart.findOne({ user_id: userId })
-                .populate('items.product');
-
-            if (!cart) {
-                return null;
-            }
-
-            // Recalculate totals with current product prices and discounts
-            cart.items = cart.items.map(item => {
-                const priceAfterDiscount = item.product.discount > 0
-                    ? item.product.price * (1 - item.product.discount / 100)
-                    : item.product.price;
-                
-                return {
-                    ...item.toObject(),
-                    price: priceAfterDiscount,
-                    total: item.quantity * priceAfterDiscount
-                };
-            });
-
-            cart.cartTotal = cart.items.reduce((sum, item) => sum + item.total, 0);
-            await cart.save();
 
             return cart;
         } catch (error) {
@@ -141,12 +113,17 @@ const cartService = {
                 ? product.price * (1 - product.discount / 100)
                 : product.price;
 
+            const oldQuantity = cart.items[itemIndex].quantity;
+            const quantityDiff = quantity - oldQuantity;
+
             if (quantity <= 0) {
                 // Remove item if quantity is 0 or less
                 cart.items.splice(itemIndex, 1);
+                // Return stock to product
+                product.stockQuantity += oldQuantity;
             } else {
                 // Check if new quantity exceeds stock
-                if (quantity > product.stockQuantity) {
+                if (quantityDiff > product.stockQuantity) {
                     throw new Error(`Only ${product.stockQuantity} items available in stock`);
                 }
 
@@ -154,11 +131,15 @@ const cartService = {
                 cart.items[itemIndex].quantity = quantity;
                 cart.items[itemIndex].price = priceAfterDiscount;
                 cart.items[itemIndex].total = quantity * priceAfterDiscount;
+                
+                // Update product stock
+                product.stockQuantity -= quantityDiff;
             }
 
             // Recalculate cart total
             cart.cartTotal = cart.items.reduce((sum, item) => sum + item.total, 0);
 
+            await product.save();
             await cart.save();
             await cart.populate('items.product');
 
@@ -176,9 +157,26 @@ const cartService = {
                 throw new Error('Cart not found');
             }
 
-            cart.items = cart.items.filter(
-                item => item.product.toString() !== productId
+            const itemIndex = cart.items.findIndex(
+                item => item.product.toString() === productId
             );
+
+            if (itemIndex === -1) {
+                throw new Error('Item not found in cart');
+            }
+
+            // Get the quantity to return to stock
+            const quantity = cart.items[itemIndex].quantity;
+
+            // Remove item from cart
+            cart.items.splice(itemIndex, 1);
+
+            // Return stock to product
+            const product = await Product.findById(productId);
+            if (product) {
+                product.stockQuantity += quantity;
+                await product.save();
+            }
 
             // Recalculate cart total
             cart.cartTotal = cart.items.reduce((sum, item) => sum + item.total, 0);
@@ -200,6 +198,15 @@ const cartService = {
                 throw new Error('Cart not found');
             }
 
+            // Return all items to stock
+            for (const item of cart.items) {
+                const product = await Product.findById(item.product);
+                if (product) {
+                    product.stockQuantity += item.quantity;
+                    await product.save();
+                }
+            }
+
             cart.items = [];
             cart.cartTotal = 0;
 
@@ -218,10 +225,24 @@ const cartService = {
                 throw new Error('Cart not found');
             }
 
-            // Remove all items with product IDs in the provided array
-            cart.items = cart.items.filter(
-                item => !productIds.includes(item.product.toString())
-            );
+            // Remove items and return stock
+            for (const productId of productIds) {
+                const itemIndex = cart.items.findIndex(
+                    item => item.product.toString() === productId
+                );
+
+                if (itemIndex !== -1) {
+                    const quantity = cart.items[itemIndex].quantity;
+                    cart.items.splice(itemIndex, 1);
+
+                    // Return stock to product
+                    const product = await Product.findById(productId);
+                    if (product) {
+                        product.stockQuantity += quantity;
+                        await product.save();
+                    }
+                }
+            }
 
             // Recalculate cart total
             cart.cartTotal = cart.items.reduce((sum, item) => sum + item.total, 0);
@@ -233,17 +254,7 @@ const cartService = {
         } catch (error) {
             throw error;
         }
-    },
-
-    // Delete cart when user is deleted
-    deleteCartByUserId: async (userId) => {
-        try {
-            const result = await Cart.deleteOne({ user_id: userId });
-            return result;
-        } catch (error) {
-            throw error;
-        }
     }
 };
 
-module.exports = cartService; 
+module.exports = cartService;
