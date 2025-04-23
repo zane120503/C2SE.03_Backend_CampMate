@@ -250,6 +250,62 @@ const campsiteController = {
                 message: error.message || 'Lỗi server'
             });
         }
+    },
+
+    // Get all reviews for a campsite
+    getAllReviews: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { page = 1, limit = 10, sort = 'created_at' } = req.query;
+
+            // Kiểm tra campsite tồn tại
+            const campsite = await Campsite.findById(id);
+            if (!campsite) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy địa điểm cắm trại'
+                });
+            }
+
+            // Tính toán phân trang
+            const skip = (page - 1) * limit;
+            const total = await ReviewLocation.countDocuments({ campsite_id: id });
+
+            // Lấy reviews với thông tin user
+            const reviews = await ReviewLocation.find({ campsite_id: id })
+                .populate('user_id', 'user_name profileImage')
+                .sort({ [sort]: -1 })
+                .skip(skip)
+                .limit(parseInt(limit));
+
+            res.status(200).json({
+                success: true,
+                data: reviews.map(review => ({
+                    id: review._id,
+                    rating: review.rating,
+                    comment: review.comment,
+                    images: review.images,
+                    created_at: review.created_at,
+                    user: {
+                        id: review.user_id._id,
+                        name: review.user_id.user_name,
+                        profileImage: review.user_id.profileImage
+                    }
+                })),
+                pagination: {
+                    total,
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    pages: Math.ceil(total / limit)
+                }
+            });
+        } catch (error) {
+            console.error('Lỗi khi lấy reviews:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Lỗi server'
+            });
+        }
     }
 };
 

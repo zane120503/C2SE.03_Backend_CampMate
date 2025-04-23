@@ -45,10 +45,6 @@ const campsiteSchema = new mongoose.Schema({
         min: 0,
         max: 5
     },
-    reviews: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'ReviewLocation'
-    }],
     priceRange: {
         min: {
             type: Number,
@@ -91,7 +87,16 @@ const campsiteSchema = new mongoose.Schema({
         default: Date.now
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+
+// Virtual để lấy reviews
+campsiteSchema.virtual('reviews', {
+    ref: 'ReviewLocation',
+    localField: '_id',
+    foreignField: 'campsite_id'
 });
 
 module.exports = mongoose.model('Campsite', campsiteSchema); 
