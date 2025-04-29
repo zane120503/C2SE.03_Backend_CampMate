@@ -43,8 +43,46 @@ const userController = {
         }
     },
 
+    getUserById: async (req, res) => {
+        try {
+            const { userId } = req.params;
+            const user = await Users.findById(userId);
+
+            if (!user) {
+                return res.status(404).json({ 
+                    success: false,
+                    message: "User not found" 
+                });
+            }
+
+            res.json({
+                success: true,
+                userData: {
+                    _id: user._id,
+                    user_name: user.user_name,
+                    first_name: user.first_name,
+                    last_name: user.last_name,
+                    profileImage: user.profileImage,
+                }
+            });
+        } catch (error) {
+            res.status(500).json({ 
+                success: false,
+                message: error.message 
+            });
+        }
+    },
+
     updateProfile: async (req, res) => {
         try {
+            // Kiểm tra token
+            if (!req.user || !req.user.id) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Token không hợp lệ hoặc đã hết hạn"
+                });
+            }
+
             const userId = req.user.id;
             const { 
                 first_name, 
@@ -93,16 +131,24 @@ const userController = {
             
             // If new image was uploaded, update profileImage
             if (req.file) {
-                // Nếu có ảnh cũ, xóa ảnh cũ trên Cloudinary
-                if (user.profileImage && user.profileImage.public_id) {
-                    await cloudinary.uploader.destroy(user.profileImage.public_id);
+                try {
+                    // Nếu có ảnh cũ, xóa ảnh cũ trên Cloudinary
+                    if (user.profileImage && user.profileImage.public_id) {
+                        await cloudinary.uploader.destroy(user.profileImage.public_id);
+                    }
+                    
+                    // Cập nhật ảnh mới
+                    user.profileImage = {
+                        url: req.file.path,
+                        public_id: req.file.filename
+                    };
+                } catch (error) {
+                    console.error("Lỗi khi cập nhật ảnh:", error);
+                    return res.status(500).json({
+                        success: false,
+                        message: "Lỗi khi cập nhật ảnh đại diện"
+                    });
                 }
-                
-                // Cập nhật ảnh mới
-                user.profileImage = {
-                    url: req.file.path,
-                    public_id: req.file.filename
-                };
             }
             
             user.isProfileCompleted = true;
@@ -111,7 +157,7 @@ const userController = {
             return res.json({
                 success: true,
                 message: "Cập nhật thông tin thành công",
-                userData: {
+                data: {
                     _id: user._id,
                     user_name: user.user_name,
                     email: user.email,
@@ -446,7 +492,8 @@ const userController = {
                 const user = await Users.findById(review.user_id);
                 return {
                     _id: review._id,
-                    user_name: user ? user.user_name : 'Unknown User',
+                    first_name: user ? user.first_name : '',
+                    last_name: user ? user.last_name : '',
                     user_image: user ? user.profileImage : null,
                     rating: review.rating,
                     comment: review.comment,
@@ -538,7 +585,8 @@ const userController = {
                 message: "Review created successfully",
                 data: {
                     _id: newReview._id,
-                    user_name: user ? user.user_name : 'Unknown User',
+                    first_name: user ? user.first_name : '',
+                    last_name: user ? user.last_name : '',
                     user_image: user ? user.profileImage : null,
                     rating: newReview.rating,
                     comment: newReview.comment,
