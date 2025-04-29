@@ -147,14 +147,18 @@ const createOrder = async (params) => {
 
     // Xóa các sản phẩm đã đặt hàng khỏi giỏ hàng
     if (params.selectedProducts && params.selectedProducts.length > 0) {
-      await Cart.findOneAndUpdate(
-        { user_id: user._id },
-        { $pull: { items: { product: { $in: params.selectedProducts } } } }
-      );
+      const cart = await Cart.findOne({ user_id: user._id });
+      if (cart) {
+        cart.items = cart.items.filter(item => 
+          !params.selectedProducts.includes(item.product.toString())
+        );
+        cart.cartTotal = cart.items.reduce((sum, item) => sum + item.total, 0);
+        await cart.save();
+      }
     } else {
       await Cart.findOneAndUpdate(
         { user_id: user._id },
-        { $set: { items: [] } }
+        { $set: { items: [], cartTotal: 0 } }
       );
     }
 

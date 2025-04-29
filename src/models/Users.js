@@ -11,7 +11,7 @@ const userSchema = mongoose.Schema({
       type: String,
       required: true,
       unique: true,
-      match: [/\S+@\S+\.\S+/, 'Please enter a valid email address']
+      match: [/\S+@\S+\.\S+/, 'Vui lòng nhập email hợp lệ']
     },
     password: {
       type: String,
@@ -33,12 +33,13 @@ const userSchema = mongoose.Schema({
     phone_number: {
       type: String,
       required: false,
-      match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit phone number']
+      match: [/^[0-9]{10}$/, 'Vui lòng nhập số điện thoại 10 chữ số']
     },
     gender: {
       type: String,
       enum: ['male', 'female', 'other'],
-      required: false
+      required: false,
+      default: 'male'
     },
     profileImage: {
       url: {
@@ -68,7 +69,7 @@ const userSchema = mongoose.Schema({
     },
     resetOtpExpireAt: {
       type: String,
-      default: 0,
+      default: '0',
     },
     isProfileCompleted: {
       type: Boolean,
@@ -86,6 +87,15 @@ const userSchema = mongoose.Schema({
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
+});
+
+// Thêm các phương thức và middleware cần thiết
+userSchema.pre('save', function(next) {
+  // Kiểm tra nếu first_name, last_name, phone_number và gender đã được điền
+  if (this.first_name && this.last_name && this.phone_number && this.gender) {
+    this.isProfileCompleted = true;
+  }
+  next();
 });
 
 module.exports = mongoose.model('User', userSchema);

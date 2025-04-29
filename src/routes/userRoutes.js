@@ -5,9 +5,11 @@ const userRouter = express.Router();
 const userController = require('../controllers/userController');
 
 userRouter.get('/api/data-users',  userAuth, userController.getUserData);
+userRouter.get('/api/data-users/:userId', userAuth, userController.getUserById);
 userRouter.get('/api/products/:productId/reviews', userController.getProductReviews);
 userRouter.post('/api/products/reviews', userAuth, uploadReview.array('images', 5), userController.createReview);
-userRouter.put('/api/update-profile', userAuth, uploadProfile.single('profileImage'), userController.updateProfile);
+userRouter.put('/api/update-profile', userAuth,uploadProfile.single('profileImage'),userController.updateProfile
+);
 userRouter.get('/api/products/search', userController.searchProducts);
 
 // Address routes
