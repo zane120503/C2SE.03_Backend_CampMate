@@ -167,7 +167,7 @@ const campsiteController = {
         try {
             const { id } = req.params;
             const userId = req.user.id;
-            const { rating, comment, images } = req.body;
+            const { rating, comment } = req.body;
 
             // Kiểm tra các trường bắt buộc
             if (!rating || !comment) {
@@ -208,12 +208,17 @@ const campsiteController = {
             }
 
             // Tạo review mới
+            let imageLinks = [];
+            if (req.files && req.files.length > 0) {
+                imageLinks = req.files.map(file => file.path); // CloudinaryStorage trả về link public ở file.path
+            }
             const review = new ReviewLocation({
                 campsite_id: id,
                 user_id: userId,
                 rating,
                 comment,
-                images: images || []
+                images: imageLinks,
+                created_at: Date.now()
             });
 
             await review.save();
@@ -256,7 +261,6 @@ const campsiteController = {
     getAllReviews: async (req, res) => {
         try {
             const { id } = req.params;
-            const { page = 1, limit = 10, sort = 'created_at' } = req.query;
 
             // Kiểm tra campsite tồn tại
             const campsite = await Campsite.findById(id);
@@ -267,40 +271,40 @@ const campsiteController = {
                 });
             }
 
-            // Tính toán phân trang
-            const skip = (page - 1) * limit;
-            const total = await ReviewLocation.countDocuments({ campsite_id: id });
-
-            // Lấy reviews với thông tin user
+            // Lấy tất cả reviews với thông tin user
             const reviews = await ReviewLocation.find({ campsite_id: id })
                 .populate('user_id', 'user_name profileImage')
-                .sort({ [sort]: -1 })
-                .skip(skip)
-                .limit(parseInt(limit));
+                .sort({ created_at: -1 });
+
+            // Tính toán thống kê
+            const totalReviews = reviews.length;
+            const averageRating = totalReviews > 0
+                ? reviews.reduce((acc, review) => acc + review.rating, 0) / totalReviews
+                : 0;
 
             res.status(200).json({
                 success: true,
-                data: reviews.map(review => ({
-                    id: review._id,
-                    rating: review.rating,
-                    comment: review.comment,
-                    images: review.images,
-                    created_at: review.created_at,
-                    user: {
-                        id: review.user_id._id,
-                        name: review.user_id.user_name,
-                        profileImage: review.user_id.profileImage
+                data: {
+                    reviews: reviews.map(review => ({
+                        id: review._id,
+                        rating: review.rating,
+                        comment: review.comment,
+                        images: review.images,
+                        created_at: review.created_at,
+                        user: {
+                            id: review.user_id._id,
+                            name: review.user_id.user_name,
+                            profileImage: review.user_id.profileImage
+                        }
+                    })),
+                    summary: {
+                        totalReviews,
+                        averageRating
                     }
-                })),
-                pagination: {
-                    total,
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    pages: Math.ceil(total / limit)
                 }
             });
         } catch (error) {
-            console.error('Lỗi khi lấy reviews:', error);
+            console.error('Lỗi khi lấy đánh giá:', error);
             res.status(500).json({
                 success: false,
                 message: error.message || 'Lỗi server'
