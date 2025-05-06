@@ -1,4 +1,5 @@
 const Order = require('../models/Order');
+const Users = require('../models/Users');
 
 exports.getAllOrders = async (req, res) => {
   try {
@@ -14,14 +15,22 @@ exports.getAllOrders = async (req, res) => {
     }
 
     const orders = await Order.find(query)
-      .populate('user_id', 'name email')
+      .populate({
+        path: 'user_id',
+        model: 'Users',
+        select: 'name email'
+      })
       .populate('shipping_address')
       .populate('products.product', 'name price image')
       .sort({ createdAt: -1 });
     
     res.json(orders);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error in getAllOrders:', error);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
