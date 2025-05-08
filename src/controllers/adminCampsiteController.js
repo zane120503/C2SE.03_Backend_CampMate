@@ -1,5 +1,25 @@
 const Campsite = require('../models/Campsite');
 const cloudinary = require('../Config/cloudinary');
+const Users = require('../models/Users');
+
+// Middleware kiểm tra quyền owner
+const checkOwnerPermission = async (req, res, next) => {
+    try {
+        const user = await Users.findById(req.user.id);
+        if (!user.isCampsiteOwner && !user.isAdmin) {
+            return res.status(403).json({
+                success: false,
+                message: 'Bạn không có quyền thực hiện thao tác này'
+            });
+        }
+        next();
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Lỗi server'
+        });
+    }
+};
 
 // Get all campsites with pagination and search
 exports.getAllCampsites = async (req, res) => {
@@ -14,6 +34,11 @@ exports.getAllCampsites = async (req, res) => {
                 { description: { $regex: search, $options: 'i' } }
             ]
         } : {};
+
+        // Nếu là owner, chỉ lấy campsite của họ
+        if (req.user.isCampsiteOwner && !req.user.isAdmin) {
+            searchQuery.owner = req.user.id;
+        }
 
         // Build sort query
         const sortQuery = {};
@@ -44,6 +69,15 @@ exports.getCampsite = async (req, res) => {
         if (!campsite) {
             return res.status(404).json({ message: 'Campsite not found' });
         }
+
+        // Kiểm tra quyền truy cập
+        if (req.user.isCampsiteOwner && !req.user.isAdmin && campsite.owner.toString() !== req.user.id) {
+            return res.status(403).json({
+                success: false,
+                message: 'Bạn không có quyền truy cập campsite này'
+            });
+        }
+
         res.json(campsite);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -113,7 +147,8 @@ exports.createCampsite = async (req, res) => {
             openingHours: openingHours ? {
                 open: openingHours.open,
                 close: openingHours.close
-            } : undefined
+            } : undefined,
+            owner: req.user.id
         });
 
         await campsite.save();
@@ -145,6 +180,14 @@ exports.updateCampsite = async (req, res) => {
         
         if (!campsite) {
             return res.status(404).json({ message: 'Campsite not found' });
+        }
+
+        // Kiểm tra quyền sửa
+        if (req.user.isCampsiteOwner && !req.user.isAdmin && campsite.owner.toString() !== req.user.id) {
+            return res.status(403).json({
+                success: false,
+                message: 'Bạn không có quyền sửa campsite này'
+            });
         }
 
         // Check if new campsite name already exists
@@ -226,6 +269,14 @@ exports.deleteCampsite = async (req, res) => {
             return res.status(404).json({ message: 'Campsite not found' });
         }
 
+        // Kiểm tra quyền xóa
+        if (req.user.isCampsiteOwner && !req.user.isAdmin && campsite.owner.toString() !== req.user.id) {
+            return res.status(403).json({
+                success: false,
+                message: 'Bạn không có quyền xóa campsite này'
+            });
+        }
+
         // Delete all images from Cloudinary
         const deletePromises = campsite.images.map(image => 
             cloudinary.uploader.destroy(image.public_id)
@@ -247,6 +298,14 @@ exports.toggleCampsiteStatus = async (req, res) => {
         const campsite = await Campsite.findById(req.params.id);
         if (!campsite) {
             return res.status(404).json({ message: 'Campsite not found' });
+        }
+
+        // Kiểm tra quyền thay đổi trạng thái
+        if (req.user.isCampsiteOwner && !req.user.isAdmin && campsite.owner.toString() !== req.user.id) {
+            return res.status(403).json({
+                success: false,
+                message: 'Bạn không có quyền thay đổi trạng thái campsite này'
+            });
         }
 
         campsite.isActive = !campsite.isActive;

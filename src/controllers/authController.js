@@ -92,6 +92,17 @@ const authController = {
          .json({ success: false, message: "User not found" });
       }
 
+      // Check if account is blocked first
+      if (user.isBlocked === true) {
+        console.log("Block check triggered");
+        return res
+         .status(403)
+         .json({ 
+           success: false, 
+           message: "Your account has been blocked. Please contact support for assistance."
+         });
+      }
+
       // Check if account is verified
       if (!user.isAccountVerified) {
         return res
@@ -125,10 +136,14 @@ const authController = {
           email: user.email,
           isAccountVerified: user.isAccountVerified,
           isProfileCompleted: user.isProfileCompleted,
-          isAdmin: user.isAdmin
+          isAdmin: user.isAdmin,
+          isCampsiteOwner: user.isCampsiteOwner,
+          isBlocked: user.isBlocked,
+          campsiteOwnerRequest: user.campsiteOwnerRequest
         }
       });
     }catch (error) {
+      console.error("Login error:", error);
       res.status(500).json({ success: false, message: "Internal server error" });
     }
   },

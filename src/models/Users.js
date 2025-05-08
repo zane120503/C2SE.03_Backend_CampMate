@@ -82,6 +82,29 @@ const userSchema = mongoose.Schema({
     isBlocked: {
       type: Boolean,
       default: false
+    },
+    isCampsiteOwner: {
+      type: Boolean,
+      default: false
+    },
+    campsiteOwnerRequest: {
+      status: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected'],
+        default: null
+      },
+      requestDate: {
+        type: Date,
+        default: null
+      },
+      responseDate: {
+        type: Date,
+        default: null
+      },
+      responseMessage: {
+        type: String,
+        default: null
+      }
     }
 }, { 
     timestamps: true,

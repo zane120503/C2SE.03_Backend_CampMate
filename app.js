@@ -8,7 +8,8 @@ const userRouter = require('./src/routes/userRoutes');
 const productRouter = require('./src/routes/productRoutes');
 const campsiteRouter = require('./src/routes/campsiteRoutes');
 const orderRouter = require('./src/routes/orderRoutes');
-const Dashboard = require('./src/routes/adminDashBoardRoutes')
+const Dashboard = require('./src/routes/adminDashBoardRoutes');
+const campsiteOwnerRouter = require('./src/routes/campsiteOwner');
 
 // Admin routes
 const adminUserRouter = require('./src/routes/adminUserRoutes');
@@ -38,6 +39,7 @@ app.use(productRouter);
 app.use(orderRouter);
 app.use(campsiteRouter);
 app.use(Dashboard);
+app.use(campsiteOwnerRouter);
 
 // Admin routes
 app.use(adminUserRouter);
