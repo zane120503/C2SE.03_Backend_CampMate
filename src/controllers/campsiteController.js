@@ -16,9 +16,14 @@ const campsiteController = {
                 rating: 1
             });
 
-            res.status(200).json({
-                success: true,
-                data: locations.map(location => ({
+            // Tính toán rating trung bình cho mỗi địa điểm
+            const locationsWithRating = await Promise.all(locations.map(async (location) => {
+                const reviews = await ReviewLocation.find({ campsite_id: location._id });
+                const averageRating = reviews.length > 0
+                    ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length
+                    : 0;
+
+                return {
                     id: location._id,
                     name: location.campsiteName,
                     location: location.location,
@@ -26,11 +31,15 @@ const campsiteController = {
                         lat: location.latitude,
                         lng: location.longitude
                     },
-                    imageURL: location.images && location.images.length > 0 ? location.images[0].url : '',
                     images: location.images || [],
-                    rating: location.rating || 0,
+                    rating: averageRating,
                     facilities: location.facilities || []
-                }))
+                };
+            }));
+
+            res.status(200).json({
+                success: true,
+                data: locationsWithRating
             });
         } catch (error) {
             console.error('Get locations error:', error);
@@ -63,10 +72,6 @@ const campsiteController = {
                 ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length
                 : 0;
 
-            // Update campsite rating
-            campsite.rating = averageRating;
-            await campsite.save();
-
             res.status(200).json({
                 success: true,
                 data: {
@@ -78,7 +83,6 @@ const campsiteController = {
                         lng: campsite.longitude
                     },
                     description: campsite.description,
-                    imageURL: campsite.images && campsite.images.length > 0 ? campsite.images[0].url : '',
                     images: campsite.images || [],
                     rating: averageRating,
                     reviews: reviews.map(review => ({
