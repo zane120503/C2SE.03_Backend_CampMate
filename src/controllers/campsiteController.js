@@ -11,7 +11,8 @@ const campsiteController = {
                 location: 1,
                 latitude: 1,
                 longitude: 1,
-                imageURL: 1,
+                images: 1,
+                facilities: 1,
                 rating: 1
             });
 
@@ -25,8 +26,10 @@ const campsiteController = {
                         lat: location.latitude,
                         lng: location.longitude
                     },
-                    imageURL: location.imageURL,
-                    rating: location.rating || 0
+                    imageURL: location.images && location.images.length > 0 ? location.images[0].url : '',
+                    images: location.images || [],
+                    rating: location.rating || 0,
+                    facilities: location.facilities || []
                 }))
             });
         } catch (error) {
@@ -75,7 +78,8 @@ const campsiteController = {
                         lng: campsite.longitude
                     },
                     description: campsite.description,
-                    imageURL: campsite.imageURL,
+                    imageURL: campsite.images && campsite.images.length > 0 ? campsite.images[0].url : '',
+                    images: campsite.images || [],
                     rating: averageRating,
                     reviews: reviews.map(review => ({
                         id: review._id,
