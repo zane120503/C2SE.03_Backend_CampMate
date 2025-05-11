@@ -82,12 +82,17 @@ exports.updateOrder = async (req, res) => {
     
     // Gửi email thông báo nếu đơn hàng vừa được xác nhận
     if (shouldSendEmail && order.user_id && order.user_id.email) {
+      // Lấy tên hiển thị ưu tiên: first_name + last_name > user_name > email
+      const user = order.user_id;
+      const displayName = (user.first_name && user.last_name)
+        ? `${user.first_name} ${user.last_name}`
+        : (user.user_name || user.email);
       const mailOptions = {
         from: process.env.EMAIL_SENDER,
         to: order.user_id.email,
         subject: 'Đơn hàng của bạn đã được xác nhận - CampGo',
         html: `
-          <h2>Xin chào ${order.user_id.name},</h2>
+          <h2>Xin chào ${displayName},</h2>
           <p>Đơn hàng của bạn (Mã đơn hàng: ${order._id}) đã được xác nhận.</p>
           <p>Đơn hàng sẽ được giao trong vòng 3 ngày làm việc kể từ ngày xác nhận.</p>
           <p>Chúng tôi sẽ thông báo thêm khi đơn hàng được giao.</p>
