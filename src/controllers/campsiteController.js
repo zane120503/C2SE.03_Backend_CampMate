@@ -91,10 +91,14 @@ const campsiteController = {
                         comment: review.comment,
                         images: review.images,
                         created_at: review.created_at,
-                        user: {
+                        user: review.user_id ? {
                             id: review.user_id._id,
                             name: review.user_id.user_name,
                             profileImage: review.user_id.profileImage
+                        } : {
+                            id: null,
+                            name: 'Anonymous',
+                            profileImage: null
                         }
                     })),
                     facilities: campsite.facilities || [],
@@ -299,10 +303,14 @@ const campsiteController = {
                         comment: review.comment,
                         images: review.images,
                         created_at: review.created_at,
-                        user: {
+                        user: review.user_id ? {
                             id: review.user_id._id,
                             name: review.user_id.user_name,
                             profileImage: review.user_id.profileImage
+                        } : {
+                            id: null,
+                            name: 'Ẩn danh',
+                            profileImage: null
                         }
                     })),
                     summary: {

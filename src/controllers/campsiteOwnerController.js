@@ -254,13 +254,27 @@ const campsiteOwnerController = {
                 public_id: result.public_id
             }));
 
+            // Xử lý facilities: nếu là string thì parse sang array
+            let facilitiesData = facilities;
+            if (typeof facilitiesData === 'string') {
+                try {
+                    facilitiesData = JSON.parse(facilitiesData);
+                } catch (e) {
+                    facilitiesData = [];
+                }
+            }
+            // Nếu là mảng lồng mảng thì lấy phần tử đầu tiên
+            if (Array.isArray(facilitiesData) && facilitiesData.length === 1 && Array.isArray(facilitiesData[0])) {
+                facilitiesData = facilitiesData[0];
+            }
+
             const campsite = new Campsite({
                 campsiteName,
                 location,
                 latitude: Number(latitude),
                 longitude: Number(longitude),
                 description,
-                facilities,
+                facilities: facilitiesData,
                 images,
                 priceRange: priceRange ? {
                     min: Number(priceRange.min),
@@ -364,7 +378,21 @@ const campsiteOwnerController = {
             if (latitude) campsite.latitude = Number(latitude);
             if (longitude) campsite.longitude = Number(longitude);
             if (description) campsite.description = description;
-            if (facilities) campsite.facilities = facilities;
+
+            // Khi cập nhật campsite
+            let facilitiesUpdate = facilities;
+            if (typeof facilitiesUpdate === 'string') {
+                try {
+                    facilitiesUpdate = JSON.parse(facilitiesUpdate);
+                } catch (e) {
+                    facilitiesUpdate = [];
+                }
+            }
+            // Nếu là mảng lồng mảng thì lấy phần tử đầu tiên
+            if (Array.isArray(facilitiesUpdate) && facilitiesUpdate.length === 1 && Array.isArray(facilitiesUpdate[0])) {
+                facilitiesUpdate = facilitiesUpdate[0];
+            }
+            if (facilities) campsite.facilities = facilitiesUpdate;
             
             if (priceRange) {
                 campsite.priceRange = {
@@ -409,9 +437,14 @@ const campsiteOwnerController = {
     deleteCampsite: async (req, res) => {
         try {
             const { id } = req.params;
+            console.log('Đang xóa campsite với ID:', id);
+            console.log('User ID:', req.user.id);
+            
             const campsite = await Campsite.findById(id);
+            console.log('Tìm thấy campsite:', campsite ? 'Có' : 'Không');
             
             if (!campsite) {
+                console.log('Không tìm thấy campsite với ID:', id);
                 return res.status(404).json({ 
                     success: false,
                     message: 'Campsite not found' 
@@ -419,7 +452,12 @@ const campsiteOwnerController = {
             }
 
             // Kiểm tra quyền sở hữu
+            console.log('Owner ID:', campsite.owner.toString());
+            console.log('User ID:', req.user.id);
+            console.log('Is Admin:', req.user.isAdmin);
+            
             if (campsite.owner.toString() !== req.user.id && !req.user.isAdmin) {
+                console.log('Không có quyền xóa campsite');
                 return res.status(403).json({
                     success: false,
                     message: 'Bạn không có quyền xóa campsite này'
@@ -427,13 +465,17 @@ const campsiteOwnerController = {
             }
 
             // Delete all images from Cloudinary
+            console.log('Đang xóa hình ảnh từ Cloudinary...');
             const deletePromises = campsite.images.map(image => 
                 cloudinary.uploader.destroy(image.public_id)
             );
             await Promise.all(deletePromises);
+            console.log('Đã xóa hình ảnh thành công');
 
             // Delete campsite from database
+            console.log('Đang xóa campsite từ database...');
             await Campsite.findByIdAndDelete(id);
+            console.log('Đã xóa campsite thành công');
             
             res.json({ 
                 success: true,

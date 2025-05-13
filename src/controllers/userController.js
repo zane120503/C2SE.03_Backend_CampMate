@@ -35,7 +35,9 @@ const userController = {
                     gender: user.gender,
                     profileImage: user.profileImage,
                     isProfileCompleted: user.isProfileCompleted,
-                    defaultAddress: defaultAddress || null
+                    defaultAddress: defaultAddress || null,
+                    isCampsiteOwner: user.isCampsiteOwner || false,
+                    campsiteOwnerRequest: user.campsiteOwnerRequest || null
                 }
             });
         } catch (error) {

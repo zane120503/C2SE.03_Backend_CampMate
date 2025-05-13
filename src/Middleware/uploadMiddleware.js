@@ -54,8 +54,15 @@ const reviewStorage = new CloudinaryStorage({
 
 // File filter to accept only images
 const fileFilter = (req, file, cb) => {
-    // Kiểm tra mimetype
-    if (file.mimetype.startsWith('image/')) {
+    console.log('File upload:', file.originalname, file.mimetype);
+    // Chấp nhận nếu mimetype là image hoặc nếu là octet-stream nhưng đuôi file hợp lệ
+    const validExt = ['.jpg', '.jpeg', '.png'];
+    const ext = file.originalname.toLowerCase();
+    const isValidExt = validExt.some(e => ext.endsWith(e));
+    if (
+        file.mimetype.startsWith('image/') ||
+        (file.mimetype === 'application/octet-stream' && isValidExt)
+    ) {
         cb(null, true);
     } else {
         cb(new Error('Chỉ chấp nhận file ảnh (jpg, jpeg, png)'), false);
