@@ -63,9 +63,9 @@ const campsiteController = {
                 });
             }
 
-            // Get reviews with user information
+            // Get reviews with user information - thêm first_name và last_name vào populate
             const reviews = await ReviewLocation.find({ campsite_id: id })
-                .populate('user_id', 'user_name profileImage');
+                .populate('user_id', 'first_name last_name user_name profileImage');
 
             // Calculate average rating
             const averageRating = reviews.length > 0
@@ -94,10 +94,14 @@ const campsiteController = {
                         user: review.user_id ? {
                             id: review.user_id._id,
                             name: review.user_id.user_name,
+                            first_name: review.user_id.first_name || '',
+                            last_name: review.user_id.last_name || '',
                             profileImage: review.user_id.profileImage
                         } : {
                             id: null,
                             name: 'Anonymous',
+                            first_name: '',
+                            last_name: '',
                             profileImage: null
                         }
                     })),
@@ -283,15 +287,13 @@ const campsiteController = {
                 });
             }
 
-            // Lấy tất cả reviews với thông tin user
+            // Lấy tất cả reviews với thông tin user đầy đủ
             const reviews = await ReviewLocation.find({ campsite_id: id })
-                .populate('user_id', 'user_name profileImage')
-                .sort({ created_at: -1 });
+                .populate('user_id', 'first_name last_name user_name profileImage');
 
-            // Tính toán thống kê
-            const totalReviews = reviews.length;
-            const averageRating = totalReviews > 0
-                ? reviews.reduce((acc, review) => acc + review.rating, 0) / totalReviews
+            // Tính toán rating trung bình
+            const averageRating = reviews.length > 0
+                ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length
                 : 0;
 
             res.status(200).json({
@@ -306,24 +308,28 @@ const campsiteController = {
                         user: review.user_id ? {
                             id: review.user_id._id,
                             name: review.user_id.user_name,
+                            first_name: review.user_id.first_name || '',
+                            last_name: review.user_id.last_name || '',
                             profileImage: review.user_id.profileImage
                         } : {
                             id: null,
-                            name: 'Ẩn danh',
+                            name: 'Anonymous',
+                            first_name: '',
+                            last_name: '',
                             profileImage: null
                         }
                     })),
                     summary: {
-                        totalReviews,
-                        averageRating
+                        totalReviews: reviews.length,
+                        averageRating: averageRating
                     }
                 }
             });
         } catch (error) {
-            console.error('Lỗi khi lấy đánh giá:', error);
+            console.error('Get reviews error:', error);
             res.status(500).json({
                 success: false,
-                message: error.message || 'Lỗi server'
+                message: error.message || 'Internal server error'
             });
         }
     }

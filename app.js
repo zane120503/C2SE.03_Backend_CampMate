@@ -10,6 +10,7 @@ const campsiteRouter = require('./src/routes/campsiteRoutes');
 const orderRouter = require('./src/routes/orderRoutes');
 const Dashboard = require('./src/routes/adminDashBoardRoutes');
 const campsiteOwnerRouter = require('./src/routes/campsiteOwner');
+const uploadRoutes = require('./src/routes/uploadRoutes');
 
 // Admin routes
 const adminUserRouter = require('./src/routes/adminUserRoutes');
@@ -40,6 +41,7 @@ app.use(orderRouter);
 app.use(campsiteRouter);
 app.use(Dashboard);
 app.use(campsiteOwnerRouter);
+app.use('/api', uploadRoutes);
 
 // Admin routes
 app.use(adminUserRouter);

@@ -81,7 +81,7 @@ const campsiteSchema = new mongoose.Schema({
     owner: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Users',
-        required: true
+        required: false
     },
     createdAt: {
         type: Date,
